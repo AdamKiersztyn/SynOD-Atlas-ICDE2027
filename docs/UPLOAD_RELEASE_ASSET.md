@@ -1,16 +1,24 @@
-# Publish the prepared reproducibility archive
+# Public archive now uploaded — next release steps (optional)
 
-**Prepared file**: `SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip` (3,501,637 bytes).
+The repository owner uploaded `SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip` directly to the **main branch**. **Do not re-upload the ZIP to main.**
 
-1. Obtain the prepared ZIP from ChatGPT.
-2. Open [New GitHub Release](https://github.com/AdamKiersztyn/SynOD-Atlas-ICDE2027/releases/new).
-3. Choose **Create new tag** `icde2027-v1.4a`, targeting branch `main`.
-4. Set release title **ICDE 2027 — audited benchmark artifact v1.4a**.
-5. Drag the ZIP into **Attach binaries by dropping them here or selecting them**.
-6. Paste the notes from [Local audit](LOCAL_AUDIT_2026-10-21.md) or briefly explain the frozen inputs and the reproduction boundary.
-7. Click **Publish release** only after the ZIP has finished uploading.
-8. Verify [GitHub Actions](https://github.com/AdamKiersztyn/SynOD-Atlas-ICDE2027/actions) completes successfully. The workflow is triggered by publishing a release.
-9. Download the ZIP again using a private/incognito browser and check the archive SHA-256: `76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee`.
-10. In CMT, link the exact release page and record the immutable release commit SHA.
+- [Archive on main](../SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip)
+- [Check GitHub Actions](https://github.com/AdamKiersztyn/SynOD-Atlas-ICDE2027/actions/workflows/verify-release.yml)
+- Expected SHA-256: `76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee`
+- Expected size: 3,501,637 bytes
 
-**Warning:** the public repository page without the ZIP does not meet full reproducibility requirements. Do not use the old 16,800-run archive.
+## Verify automation
+
+The GitHub workflow runs on changes to the archive or its own workflow definition on branch `main`. If the latest run is missing, open **Actions → Verify SynOD-Atlas reproducibility artifact → Run workflow**, choose `main`, and click **Run workflow**. The action checks the ZIP and 101 internal hashes, validates 2,100 tasks and 27,300 runs, runs 65 smoke cases, and reproduces 32 derived CSV tables. It does **not** repeat 27,300 detector executions.
+
+## Freeze submission version
+
+Once Actions is green, make an immutable reference without uploading the binary again:
+
+1. [Create a new GitHub release](https://github.com/AdamKiersztyn/SynOD-Atlas-ICDE2027/releases/new).
+2. Create tag `icde2027-v1.4a` on the **verified commit on main**.
+3. Give it a descriptive title and note that the binary is stored in the repository tree as `SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip`.
+4. Publish the Release **without uploading another copy**. GitHub will show the tagged source archive containing the committed ZIP.
+5. Check public access to the file through the tag link and use this frozen URL in CMT. If necessary, include the commit SHA and limitations of the external dataset lineage.
+
+The document `docs/LOCAL_AUDIT_2026-10-21.md` records local test results from the source archive.
