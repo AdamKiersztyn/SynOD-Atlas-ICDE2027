@@ -1,0 +1,54 @@
+name: Verify published reproducibility artifact
+on:
+  release:
+    types: [published]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download exact release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release download "${{ github.event.release.tag_name }}" \
+            --pattern "SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip" \
+            --dir .
+          test -s SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip
+      - name: Verify archive SHA-256
+        run: |
+          echo "76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee  SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip" | sha256sum -c -
+      - name: Extract and validate file-level checksums
+        run: |
+          python -m zipfile -e SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip .
+          cd artifact
+          sha256sum -c SHA256SUMS.txt
+      - name: Install frozen analysis dependencies
+        run: python -m pip install -r artifact/code/requirements_v21a.txt
+      - name: Verify frozen data and cube integrity
+        env:
+          PYTHONPATH: artifact/code
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+          MKL_NUM_THREADS: '1'
+        run: |
+          python artifact/code/verify_release.py --artifact-root artifact
+          python artifact/code/smoke_verify_v10.py --artifact-root artifact
+      - name: Reproduce claim tables and figures
+        env:
+          PYTHONPATH: artifact/code
+          OPENBLAS_NUM_THREADS: '1'
+          OMP_NUM_THREADS: '1'
+          MKL_NUM_THREADS: '1'
+        run: |
+          python artifact/code/reproduce_paper.py --artifact-root artifact --output reproduced
+          python artifact/code/verify_release.py --artifact-root artifact --reproduced reproduced
