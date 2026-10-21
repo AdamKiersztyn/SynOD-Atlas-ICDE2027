@@ -1,54 +1,89 @@
-name: Verify published reproducibility artifact
+name: Verify SynOD-Atlas reproducibility artifact
+
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip'
+      - '.github/workflows/verify-release.yml'
+  workflow_dispatch:
   release:
     types: [published]
+
 permissions:
   contents: read
+
 jobs:
   verify:
+    name: Check frozen data, detectors, tables and figures
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 90
+
+    env:
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      PYTHONPATH: artifact/code
+      ARCHIVE: SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip
+
     steps:
-      - name: Check out repository
+      - name: Check out repository (ZIP is committed on main)
         uses: actions/checkout@v4
-      - name: Set up Python
+
+      - name: Set up frozen Python environment
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download exact release asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
+
+      - name: Verify uploaded ZIP identity
+        shell: bash
         run: |
-          gh release download "${{ github.event.release.tag_name }}" \
-            --pattern "SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip" \
-            --dir .
-          test -s SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip
-      - name: Verify archive SHA-256
+          test -s "$ARCHIVE"
+          test "$(wc -c < "$ARCHIVE" | tr -d ' ')" -eq 3501637
+          echo "76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee  $ARCHIVE" | sha256sum -c -
+
+      - name: Extract artifact and verify all packaged checksums
+        shell: bash
         run: |
-          echo "76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee  SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip" | sha256sum -c -
-      - name: Extract and validate file-level checksums
+          python -m zipfile -e "$ARCHIVE" .
+          test -f artifact/SHA256SUMS.txt
+          (cd artifact && sha256sum -c SHA256SUMS.txt)
+
+      - name: Install pinned analysis dependencies
+        run: python -m pip install --disable-pip-version-check -r artifact/code/requirements_v21a.txt
+
+      - name: Verify 2,100 tasks, 27,300 runs and relational cube
+        run: python artifact/code/verify_release.py --artifact-root artifact
+
+      - name: Recompute 65 deterministic detector smoke cases
         run: |
-          python -m zipfile -e SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip .
-          cd artifact
-          sha256sum -c SHA256SUMS.txt
-      - name: Install frozen analysis dependencies
-        run: python -m pip install -r artifact/code/requirements_v21a.txt
-      - name: Verify frozen data and cube integrity
-        env:
-          PYTHONPATH: artifact/code
-          OPENBLAS_NUM_THREADS: '1'
-          OMP_NUM_THREADS: '1'
-          MKL_NUM_THREADS: '1'
+          python artifact/code/smoke_verify_v10.py --artifact-root artifact | tee smoke-checks.txt
+          grep -Eq 'checked=65' smoke-checks.txt
+
+      - name: Reproduce analytical tables and figures from frozen scores
+        run: python artifact/code/reproduce_paper.py --artifact-root artifact --output reproduced
+
+      - name: Compare 32 regenerated result tables with frozen reference
+        shell: bash
         run: |
-          python artifact/code/verify_release.py --artifact-root artifact
-          python artifact/code/smoke_verify_v10.py --artifact-root artifact
-      - name: Reproduce claim tables and figures
-        env:
-          PYTHONPATH: artifact/code
-          OPENBLAS_NUM_THREADS: '1'
-          OMP_NUM_THREADS: '1'
-          MKL_NUM_THREADS: '1'
-        run: |
-          python artifact/code/reproduce_paper.py --artifact-root artifact --output reproduced
-          python artifact/code/verify_release.py --artifact-root artifact --reproduced reproduced
+          python artifact/code/verify_release.py --artifact-root artifact --reproduced reproduced | tee reproduced-verification.json
+          python - <<'PY'
+          import json
+          with open('reproduced-verification.json', encoding='utf8') as fh:
+              report = json.load(fh)
+          assert report['status'] == 'PASS'
+          assert report['reproduced_tables_compared'] == 32, report
+          print("PASS: 32 reproduced tables match frozen references")
+          PY
+
+      - name: Upload reproducibility log and regenerated outputs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reproducibility-validation
+          path: |
+            smoke-checks.txt
+            reproduced-verification.json
+            reproduced/figures/
+          if-no-files-found: ignore
+          retention-days: 30
