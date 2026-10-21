@@ -1,0 +1,89 @@
+name: Publish frozen benchmark artifact
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ARCHIVE: SynOD-Atlas-ICDE2027_VERIFIED_ARTIFACT_v1.4a.zip
+      TAG: icde2027-v1.4a
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      OPENBLAS_NUM_THREADS: '1'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - name: Check out the exact commit
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check the frozen archive and all internal checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s "$ARCHIVE"
+          test "$(wc -c < "$ARCHIVE" | tr -d ' ')" -eq 3501637
+          echo "76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee  $ARCHIVE" | sha256sum -c -
+          python -m zipfile -e "$ARCHIVE" .
+          (cd artifact && sha256sum -c SHA256SUMS.txt)
+
+      - name: Check frozen benchmark integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check -r artifact/code/requirements_v21a.txt
+          PYTHONPATH=artifact/code python artifact/code/verify_release.py --artifact-root artifact
+          PYTHONPATH=artifact/code python artifact/code/smoke_verify_v10.py --artifact-root artifact | tee smoke-checks.txt
+          grep -q 'checked=65' smoke-checks.txt
+
+      - name: Prepare release notes
+        shell: bash
+        run: |
+          cat > /tmp/synod-release-notes.md <<'EOF'
+          Frozen artifact accompanying "From Aggregate Scores to Competence Geometry in Unsupervised Outlier Detection" (ICDE 2027, Experiment, Analysis, and Benchmark).
+
+          Audited experiment: 2,100 controlled datasets; 13 detectors; 27,300 core runs; 6,552 sample-size audit runs; 1,008 hyperparameter audit runs; a 31×24 real-data profile matrix; queryable Failure Cube.
+
+          The attached ZIP provides frozen source, analysis data, provenance records and reproducibility checks. Automated checks verify SHA-256, relational integrity and 65 smoke executions. The companion GitHub Actions "Verify SynOD-Atlas reproducibility artifact" verifies 32 reproduced derived tables. The full 27,300 detector runs were not repeated in this workflow. The exact synthetic-to-real geometric transfer test is null; full raw-source lineage is unavailable for some external datasets.
+
+          Artifact SHA-256: 76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee
+          EOF
+
+      - name: Create frozen tagged release with binary attachment
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag/release already exists; refusing to overwrite immutable artifact."
+            exit 1
+          fi
+          gh release create "$TAG" "$ARCHIVE" \
+            --target "$GITHUB_SHA" \
+            --title "Frozen competence-geometry benchmark artifact v1.4a" \
+            --notes-file /tmp/synod-release-notes.md \
+            --latest=false
+
+      - name: Verify published asset and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/released
+          gh release download "$TAG" --pattern "$ARCHIVE" --dir /tmp/released
+          echo "76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee  /tmp/released/$ARCHIVE" | sha256sum -c -
+          gh release view "$TAG" --json url,tagName,assets,targetCommitish | tee /tmp/release-record.json
