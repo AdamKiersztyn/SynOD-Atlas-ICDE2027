@@ -1,6 +1,6 @@
 # SynOD-Atlas — ICDE 2027 reproducibility artifact
 
-**Artifact status: publicly uploaded to the main branch; automated clean-run verification is pending.**
+**Artifact status: PUBLIC FROZEN RELEASE — `icde2027-v1.4a` (GitHub Actions release publication and checks PASS).**
 
 This repository is intended to accompany the manuscript **“From Aggregate Scores to Competence Geometry in Unsupervised Outlier Detection”**, submitted under the **Experiment, Analysis, and Benchmark** category. SynOD-Atlas is the name of the benchmark, not part of the manuscript title.
 
@@ -21,10 +21,10 @@ The frozen generator lineage combines the verified v1.4 source, the v2.1 lineage
 
 ## Prepared and locally validated archive (21 October 2026)
 
-The frozen release ZIP has been assembled from the final v1.4a package and passed local integrity, 65 smoke checks, and comparison of 32 reproduced result tables. **The ZIP is now available on the public `main` branch.** SHA-256: `76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee`. The GitHub Actions workflow verifies this branch-based archive on push and on manual dispatch. A tagged release remains desirable for an immutable archival reference.
+The frozen v1.4a ZIP is now published as an **attached asset of [the immutable tagged GitHub release](https://github.com/AdamKiersztyn/SynOD-Atlas-ICDE2027/releases/tag/icde2027-v1.4a)**. SHA-256: `76f072db5effd157121f031d88a9de640b11d245de9cd5a1dae1b952607502ee`. The archive passed local integrity, 65 smoke checks, and comparison of 32 reproduced derived tables. The [release-publishing workflow](https://github.com/AdamKiersztyn/SynOD-Atlas-ICDE2027/actions/runs/39670175761) separately passed integrity checks, 65 smoke cases and public release-asset download/hash verification.
 
 - [Local verification report](docs/LOCAL_AUDIT_2026-10-21.md)
-- [Optional immutable tagged release and verification](docs/UPLOAD_RELEASE_ASSET.md)
+- [Frozen release details and CMT citation](docs/UPLOAD_RELEASE_ASSET.md)
 - [Release verification workflow](.github/workflows/verify-release.yml)
 
 ## Contents of the uploaded ZIP
@@ -54,7 +54,7 @@ The real-data evaluation does **not** demonstrate exact synthetic-to-real geomet
 
 Manuscript title: *From Aggregate Scores to Competence Geometry in Unsupervised Outlier Detection*. The category prefix required by the venue is handled separately in submission metadata.
 
-A public code/data URL now exists. Confirm the GitHub Actions validation result and freeze a tag before treating it as the final supplementary submission URL.
+Frozen release published and verified. Cite the exact [release](https://github.com/AdamKiersztyn/SynOD-Atlas-ICDE2027/releases/tag/icde2027-v1.4a), not a moving `main` branch. The published artifact reproduces analyses from frozen scores and passes deterministic smoke checks; it is not evidence of a fresh rerun of all 27,300 detector executions.
 
 ## Contact
 
