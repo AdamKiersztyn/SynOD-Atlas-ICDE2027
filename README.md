@@ -19,6 +19,14 @@ The manuscript's October 6, 2026 audit reports:
 
 The frozen generator lineage combines the verified v1.4 source, the v2.1 lineage-preserving extension, and the v2.1a detector execution wrappers. In particular, the final 13-detector evaluation includes the corrected PCA reconstruction rule. Superseded 8-detector/16,800-run and 14-detector versions must **not** be substituted for this release.
 
+## Prepared and locally validated archive (21 October 2026)
+
+The frozen release ZIP has been assembled from the final v1.4a package and passed local integrity, 65 smoke checks, and comparison of 32 reproduced result tables. **The ZIP still needs to be uploaded to a GitHub Release by the repository owner; this GitHub connector cannot attach a binary release asset.**
+
+- [Local verification report](docs/LOCAL_AUDIT_2026-10-21.md)
+- [How to publish the prepared ZIP](docs/UPLOAD_RELEASE_ASSET.md)
+- [Release verification workflow](.github/workflows/verify-release.yml)
+
 ## Contents planned for the audited release
 
 The following materials **have not yet been verified as present in this repository**:
